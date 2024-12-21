@@ -232,30 +232,35 @@ if __name__ == "__main__":
 - Add the class Payment() following the class example.
 
 ``` python
+import os
+
 class MenuItem:
-    """Clase base para elementos del menú."""
-    def __init__(self, name: str, price: float):
+    """Base class for a menu item."""
+
+    def __init__(self, name, price):
         self._name = name
         self._price = price
 
     def get_name(self):
         return self._name
 
-    def set_name(self, value):
-        self._name = value
+    def set_name(self, name):
+        self._name = name
 
     def get_price(self):
         return self._price
 
-    def set_price(self, value):
-        self._price = value
+    def set_price(self, price):
+        self._price = price
 
-    def calculate_total_price(self):
+    def calculate_price(self):
         return self._price
 
 
 class Beverage(MenuItem):
-    def __init__(self, name: str, price: float, is_alcoholic: bool):
+    """Subclass for beverages."""
+
+    def __init__(self, name, price, is_alcoholic):
         super().__init__(name, price)
         self._is_alcoholic = is_alcoholic
 
@@ -267,86 +272,185 @@ class Beverage(MenuItem):
 
 
 class Appetizer(MenuItem):
+    """Subclass for appetizers."""
+
     pass
 
 
 class MainCourse(MenuItem):
-    pass
+    """Subclass for main courses."""
+
+    def __init__(self, name, price, is_vegetarian):
+        super().__init__(name, price)
+        self._is_vegetarian = is_vegetarian
+
+    def get_is_vegetarian(self):
+        return self._is_vegetarian
+
+    def set_is_vegetarian(self, value):
+        self._is_vegetarian = value
 
 
 class Order:
-    """Clase que representa un pedido de un cliente."""
+    """Class representing a customer's order."""
+
     def __init__(self):
         self.items = []
 
-    def add_item(self, item: MenuItem):
-        self.items.append(item)
+    def add_item(self, item):
+        if isinstance(item, MenuItem):
+            self.items.append(item)
+        else:
+            raise ValueError("The item must be a MenuItem object.")
 
     def calculate_total(self):
-        total = sum(item.calculate_total_price() for item in self.items)
+        return sum(item.calculate_price() for item in self.items)
 
-        # Aplicar descuento si el pedido incluye un plato principal
-        if any(isinstance(item, MainCourse) for item in self.items):
-            beverage_discount = 0.1  # 10% de descuento en bebidas
-            for item in self.items:
-                if isinstance(item, Beverage):
-                    total -= item.get_price() * beverage_discount
+    def apply_discount(self, discount_percentage):
+        total = self.calculate_total()
+        discount = total * (discount_percentage / 100)
+        return total - discount
+
+    def calculate_total_price(self):
+        total = self.calculate_total()
+
+        # Override for main course and beverage discount
+        has_main_course = any(isinstance(item, MainCourse) for item in self.items)
+        has_beverage = any(isinstance(item, Beverage) for item in self.items)
+
+        if has_main_course and has_beverage:
+            total *= 0.9  # 10% discount on beverages if main course exists
 
         return total
 
     def show_order_summary(self):
         print("Resumen del pedido:")
         for item in self.items:
-            print(f"{item.get_name()} - ${item.get_price():.2f}")
-        print(f"Total: ${self.calculate_total():.2f}")
+            print(f"{item.get_name()}: ${item.get_price():.2f}")
+        print(f"Total: ${self.calculate_total_price():.2f}")
+
+    @staticmethod
+    def limpiar_pantalla():
+        """Limpia la consola."""
+        os.system("cls" if os.name == "nt" else "clear")
+
+    @staticmethod
+    def continuar():
+        """Pausa la ejecución hasta que el usuario presione Enter."""
+        input("\nPresiona Enter para continuar...")
+        Order.limpiar_pantalla()
 
 
 class Payment:
-    """Clase para manejar los pagos."""
-    def __init__(self, order: Order):
-        self.order = order
-        self.amount_paid = 0.0
+    """Abstract base class for payment methods."""
 
-    def make_payment(self, amount: float):
-        self.amount_paid += amount
+    def pay(self, amount):
+        raise NotImplementedError("Subclasses must implement the pay method.")
 
-    def is_payment_complete(self):
-        return self.amount_paid >= self.order.calculate_total()
 
-    def show_payment_status(self):
-        total = self.order.calculate_total()
-        print(f"Total a pagar: ${total:.2f}")
-        print(f"Monto pagado: ${self.amount_paid:.2f}")
-        if self.is_payment_complete():
-            print("El pago está completo. Gracias por su compra.")
+class CreditCard(Payment):
+    def __init__(self, card_number, cvv):
+        self.card_number = card_number
+        self.cvv = cvv
+
+    def pay(self, amount):
+        print(f"Pagando ${amount:.2f} con tarjeta terminada en {self.card_number[-4:]}")
+
+
+class Cash(Payment):
+    def __init__(self, amount_given):
+        self.amount_given = amount_given
+
+    def pay(self, amount):
+        if self.amount_given >= amount:
+            change = self.amount_given - amount
+            print(f"Pago realizado en efectivo. Cambio: ${change:.2f}")
         else:
-            print(f"Falta por pagar: ${total - self.amount_paid:.2f}")
+            shortage = amount - self.amount_given
+            print(f"Fondos insuficientes. Faltan ${shortage:.2f} para completar el pago.")
 
 
-# Ejemplo de uso
-if __name__ == "__main__":
-    # Crear elementos del menú
-    beverage1 = Beverage("Cerveza", 5.0, True)
-    beverage2 = Beverage("Refresco", 2.0, False)
-    appetizer = Appetizer("Nachos", 6.0)
-    main_course = MainCourse("Hamburguesa", 10.0)
+def main_menu():
+    menu = [
+        Beverage("Gaseosa 600 mL", 7000, False),
+        Beverage("Cerveza artesanal", 15000, True),
+        Beverage("Cerveza Heineken botella", 10000, True),
+        Beverage("Limonada de coco", 10000, False),
+        Beverage("Agua", 5000, False),
+        Appetizer("Empanadas de pollo(4und)", 10000),
+        Appetizer("Empanadas de carne(4und)", 10000),
+        Appetizer("Empanadas de camarón(4und)", 12000),
+        Appetizer("Chunchullo", 18000),
+        Appetizer("Ceviche", 15000),
+        MainCourse("Churrasco", 40000, False),
+        MainCourse("Medio Churrasco", 28000, False),
+        MainCourse("Bandeja Paisa", 38000, False),
+        MainCourse("Hamburguesa", 33000, False),
+        MainCourse("Hamburguesa vegetariana", 36000, True),
+        MainCourse("Mojarra", 38000, False)
+    ]
 
-    # Crear un pedido
     order = Order()
-    order.add_item(beverage1)
-    order.add_item(beverage2)
-    order.add_item(appetizer)
-    order.add_item(main_course)
 
-    # Mostrar el resumen del pedido
+    while True:
+        Order.limpiar_pantalla()
+        print("Menú del Restaurante:")
+        print("\n--- Bebidas ---")
+        for i, item in enumerate(menu, start=1):
+            if isinstance(item, Beverage):
+                print(f"{i}. {item.get_name()} - ${item.get_price():.2f}")
+        print("\n--- Aperitivos ---")
+        for i, item in enumerate(menu, start=1):
+            if isinstance(item, Appetizer):
+                print(f"{i}. {item.get_name()} - ${item.get_price():.2f}")
+        print("\n--- Platos principales ---")
+        for i, item in enumerate(menu, start=1):
+            if isinstance(item, MainCourse):
+                print(f"{i}. {item.get_name()} - ${item.get_price():.2f}")
+
+        try:
+            choices = input("\nIngrese los números de los items separados por comas: ").strip()
+
+            choices = [int(choice) - 1 for choice in choices.split(",") if choice.strip().isdigit()]
+            for choice in choices:
+                if 0 <= choice < len(menu):
+                    order.add_item(menu[choice])
+                    print(f"{menu[choice].get_name()} agregado al pedido.")
+                else:
+                    print(f"El número {choice + 1} no es válido y se ignoró.")
+        except ValueError:
+            print("\nEntrada inválida. Por favor, ingrese solo números separados por comas.")
+
+        confirm = input("\n¿Desea agregar más items? (s/n): ").strip().lower()
+        if confirm != 's':
+            break
+
+    Order.limpiar_pantalla()
+    print("\nResumen Final del Pedido:")
     order.show_order_summary()
 
-    # Realizar el pago
-    payment = Payment(order)
-    payment.show_payment_status()
-    payment.make_payment(15.0)
-    payment.show_payment_status()
-    payment.make_payment(10.0)
-    payment.show_payment_status()
+    confirm = input("\n¿Confirma su pedido? (s/n): ").strip().lower()
+    if confirm == 's':
+        payment_method = input("\nSeleccione método de pago (1: Tarjeta, 2: Efectivo): ").strip()
+        if payment_method == '1':
+            card_number = input("Ingrese el número de tarjeta: ").strip()
+            cvv = input("Ingrese el CVV: ").strip()
+            card = CreditCard(card_number, cvv)
+            card.pay(order.calculate_total_price())
+        elif payment_method == '2':
+            try:
+                amount_given = float(input("Ingrese el monto entregado: ").strip())
+                cash = Cash(amount_given)
+                cash.pay(order.calculate_total_price())
+            except ValueError:
+                print("\nMonto ingresado no válido.")
+        else:
+            print("\nMétodo de pago no válido")
+    else:
+        print("\nEl pedido fue cancelado.")
+
+
+if __name__ == "__main__":
+    main_menu()
 
 ```
