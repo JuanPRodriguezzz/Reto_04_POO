@@ -226,13 +226,12 @@ if __name__ == "__main__":
     print(f"Perímetro del cuadrado: {square.compute_perimeter()}")
 
 ```
-## 2. 
-**The restaurant revisted**
-Add setters and getters to all subclasses for menu item
-Override calculate_total_price() according to the order composition (e.g if the order includes a main course apply some disccount on beverages)
-Add the class Payment() following the class example.
+## 2. The restaurant revisted
+- Add setters and getters to all subclasses for menu item
+- Override calculate_total_price() according to the order composition (e.g if the order includes a main course apply some disccount on beverages)
+- Add the class Payment() following the class example.
 
-```
+``` python
 class MenuItem:
     """Clase base para elementos del menú."""
     def __init__(self, name: str, price: float):
